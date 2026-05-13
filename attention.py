@@ -12,12 +12,14 @@ EEG_CHANNELS = ["F1", "F2", "C3", "C4", "P3", "P4", "O1", "O2", "Cz", "Pz"]
 DELTA_BAND = (0.5, 4.0)
 ALPHA_BAND = (8.0, 13.0)
 BETA_BAND  = (13.0, 30.0)
+ALL_BANDS = (0.5, 40.0)
 
 
 class dDTFResult(TypedDict):
     alpha: np.ndarray   # (n_ch, n_ch) mean dDTF in alpha band; [i,j] = j→i
     beta:  np.ndarray   # (n_ch, n_ch) mean dDTF in beta  band
     delta: np.ndarray   # (n_ch, n_ch) mean dDTF in delta band
+    all:   np.ndarray
     ch_names: list[str] # channel labels corresponding to matrix axes
 
 
@@ -308,6 +310,7 @@ def compute_ddtf_connectivity(raw: mne.io.RawArray,
         delta    = _band_mean(ddtf, freqs, *DELTA_BAND),
         alpha    = _band_mean(ddtf, freqs, *ALPHA_BAND),
         beta     = _band_mean(ddtf, freqs, *BETA_BAND),
+        all      = _band_mean(ddtf, freqs, *ALL_BANDS),
         ch_names = raw_eeg.ch_names,
     )
 
@@ -332,12 +335,14 @@ BAND_CMAPS = {
     "alpha": "Blues",
     "beta":  "Greens",
     "delta": "Purples",
+    "all": "Reds",
 }
 
 BAND_RANGES = {
     "alpha": "8–13 Hz",
     "beta":  "13–30 Hz",
     "delta": "0.5–4 Hz",
+    "all": "0.5-40 Hz",
 }
 
 
@@ -381,7 +386,7 @@ def plot_ddtf(
     Parameters
     ----------
     result    : dDTFResult dict from compute_ddtf_connectivity()
-    band      : one of 'alpha', 'beta', 'delta'
+    band      : one of 'alpha', 'beta', 'delta', 'all'
     threshold : minimum normalized strength to display (0–1). Connections
                 below this value are hidden to reduce visual clutter.
     figsize   : matplotlib figure size in inches
@@ -493,7 +498,7 @@ def plot_all_bands(result: dict, threshold: float = 0.20) -> plt.Figure:
     """
     fig, axes = plt.subplots(1, 3, figsize=(18, 7), facecolor="white")
 
-    for ax, band in zip(axes, ["alpha", "beta", "delta"]):
+    for ax, band in zip(axes, ["alpha", "beta", "delta", "all"]):
         # Temporarily redirect plot_ddtf to use our shared axis
         _plot_ddtf_on_axis(ax, result, band, threshold)
 

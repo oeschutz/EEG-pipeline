@@ -4,6 +4,7 @@ import pandas as pd
 import mne
 from pathlib import Path
 import matplotlib.pyplot as plt
+from mne.preprocessing import ICA
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. LOAD OPENBCI TEXT FILE
@@ -34,11 +35,15 @@ def load_galea_txt(filepath: str, CH_NAMES: list, SFREQ: int) -> mne.io.RawArray
     # ── Trim to marker-8 region ───────────────────────────────────────────────
     marker_col = next((c for c in df.columns if "marker" in c.lower()), None)
     if marker_col is not None:
-        marker_hits = df.index[df[marker_col].astype(str).str.strip() == "8"].tolist()
+        print("Trimming to region between markers")
+        marker_hits = df.index[df[marker_col].astype(str).str.strip() == "8.0"].tolist()
+        #print(marker_hits)
         if len(marker_hits) >= 2:
             df = df.loc[marker_hits[0] : marker_hits[-1]].reset_index(drop=True)
+            #print("length of df: ", len(df))
         elif len(marker_hits) == 1:
             df = df.loc[marker_hits[0] :].reset_index(drop=True)
+            #print("length of df: ", len(df))
         # If no marker-8 rows exist, fall through and use the whole file
 
 
@@ -72,6 +77,74 @@ def load_galea_txt(filepath: str, CH_NAMES: list, SFREQ: int) -> mne.io.RawArray
     raw.set_montage("standard_1020", match_case=False, on_missing="warn")
     return raw
 
+def load_baseline_galea(filepath: str, CH_NAMES: list, SFREQ: int) -> list:
+    """
+    loads the baseline file into 3 separate raw objects (one for each baseline task)
+    """
+
+    filepath = Path(filepath)
+    header_lines = 0
+
+    with open(filepath, "r") as f:
+        for line in f:
+            if line.startswith("%"):
+                header_lines += 1
+            else:
+                break
+
+    df = pd.read_csv(filepath, skiprows=header_lines)
+    df.columns = df.columns.str.strip()
+
+    # ── Trim to marker-8 region ───────────────────────────────────────────────
+    marker_col = next((c for c in df.columns if "marker" in c.lower()), None)
+    if marker_col is not None:
+        print("Trimming to region between markers")
+        marker_hits = df.index[df[marker_col].astype(str).str.strip() == "8.0"].tolist()
+        #print(marker_hits)
+        if len(marker_hits) >= 2:
+            df = df.loc[marker_hits[0] : marker_hits[-1]].reset_index(drop=True)
+            #print("length of df: ", len(df))
+        elif len(marker_hits) == 1:
+            df = df.loc[marker_hits[0] :].reset_index(drop=True)
+            #print("length of df: ", len(df))
+        # If no marker-8 rows exist, fall through and use the whole file
+
+    # ── Divide into baselining tasks ──────────────────────────────────────────
+    baseline_data = [df.loc[2500:27500], df.loc[32500:57500], df.loc[62500:87500], df[27500:32500], df[62500:87500], df]
+    baseline_raw = []
+    for df in baseline_data:
+        # Keep only EXG columns
+        eeg_cols = [c for c in df.columns if re.search(r"EEG Channel|EOG Channel", c, re.I)]
+        if not eeg_cols:
+            # Fallback: columns 1..N-1 (skip sample index, drop timestamp)
+            eeg_cols = df.columns[1:-1].tolist()
+
+        data = df[eeg_cols].values.T.astype(np.float64)
+
+        # Trim CH_NAMES to however many channels are actually in the file
+        n_ch = data.shape[0]
+        if n_ch < len(CH_NAMES):
+            ch_names = CH_NAMES[:n_ch]
+        elif n_ch > len(CH_NAMES):
+            ch_names = CH_NAMES
+            print(ch_names)
+            print(len(data))
+            data = np.delete(data, np.s_[len(CH_NAMES):n_ch], 0)
+            n_ch = data.shape[0]
+            print(n_ch)
+        else:
+            ch_names = CH_NAMES
+
+        # OpenBCI GUI outputs µV already in .txt — convert to V for MNE
+        data_V = data * 1e-6
+
+        info = mne.create_info(ch_names=ch_names, sfreq=SFREQ, ch_types="eeg")
+        raw = mne.io.RawArray(data_V, info, verbose=False)
+        raw.set_montage("standard_1020", match_case=False, on_missing="warn")
+        baseline_raw.append(raw)
+    return baseline_raw
+
+
 def filter_data(raw: mne.io.RawArray) -> mne.io.RawArray:
     """Bandpass filter + notch (50 Hz & 60 Hz power line frequencies)."""
     raw = raw.copy()
@@ -79,9 +152,7 @@ def filter_data(raw: mne.io.RawArray) -> mne.io.RawArray:
     raw.notch_filter(freqs=[50.0, 60.0], verbose=False)
     return raw
 
-import mne
-import numpy as np
-from mne.preprocessing import ICA
+
 
 # remove_blinks ideally needs the EOG channels to be good - otherwise, can maybe bring eye tracking data in, but would need to manually sync the eye tracking to galea data
 def remove_blinks(raw: mne.io.RawArray) -> mne.io.RawArray: 

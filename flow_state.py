@@ -95,6 +95,7 @@ def compute_flow_features(raw: mne.io.RawArray) -> BandPowerFeatures:
     spectrum = raw_eeg.compute_psd(method="welch", n_fft=n_fft,
                                    fmin=0.5, fmax=40.0)
     psds, freqs = spectrum.get_data(return_freqs=True)   # (n_ch, n_freqs), µV²/Hz
+    #print(spectrum.get_data())
 
     ch_names = raw_eeg.ch_names                          # preserves pick order
 
@@ -118,11 +119,11 @@ def compute_flow_features(raw: mne.io.RawArray) -> BandPowerFeatures:
     rc_idx = _ch_idx(RT_CENTRAL_CH)  # [C4]
 
     return BandPowerFeatures(
-        frontal_theta        = float(theta_pw[f_idx].mean()),
-        frontal_alpha        = float(alpha_pw[f_idx].mean()),
-        right_central_alpha  = float(alpha_pw[rc_idx].mean()),
-        theta_power          = float(theta_pw.mean()),
-        alpha_power          = float(alpha_pw.mean()),
-        beta_power           = float(beta_pw.mean()),
+        frontal_theta        = float(theta_pw[f_idx].mean())*1e12,
+        frontal_alpha        = float(alpha_pw[f_idx].mean())*1e12,
+        right_central_alpha  = float(alpha_pw[rc_idx].mean())*1e12,
+        theta_power          = float(theta_pw.mean())*1e12,
+        alpha_power          = float(alpha_pw.mean())*1e12,
+        beta_power           = float(beta_pw.mean())*1e12,
     )
 

@@ -184,8 +184,8 @@ def compute_beta_alpha_ratio(
             )
             psd, freqs = spectrum[0][0], spectrum[1]  # (n_freqs,), (n_freqs,)
 
-            alpha_pw = _band_power(psd, freqs, *ALPHA_BAND)
-            beta_pw  = _band_power(psd, freqs, *BETA_BAND)
+            alpha_pw = _band_power(psd, freqs, *ALPHA_BAND)*1e12
+            beta_pw  = _band_power(psd, freqs, *BETA_BAND)*1e12
 
             # Guard against a silent alpha floor to avoid divide-by-zero.
             # A very small alpha (< 0.01 µV²/Hz) can occur in heavily
