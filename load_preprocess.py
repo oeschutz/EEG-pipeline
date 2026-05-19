@@ -241,10 +241,10 @@ def remove_blinks(raw: mne.io.RawArray) -> mne.io.RawArray:
 import mne
 import numpy as np
 
-
-def segment_raw(raw: mne.io.RawArray, epoch_duration: float = 2.0) -> list[mne.io.RawArray]:
+# use this to show segment of cognitive states change throughout the task
+def segment_raw(raw: mne.io.RawArray, epoch_duration: float = 60.0) -> list[mne.io.RawArray]:
     """
-    Segment a continuous RawArray into fixed-length 2-second RawArray objects.
+    Segment a continuous RawArray into fixed-length 60 second RawArray objects.
 
     Any trailing samples that do not fill a complete epoch are discarded.
 
