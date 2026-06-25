@@ -482,27 +482,33 @@ def plot_ddtf(
     return fig
 
 
-def plot_all_bands(result: dict, threshold: float = 0.20) -> plt.Figure:
+def plot_all_bands(
+    result: dict,
+    threshold: float = 0.20,
+    suptitle: str | None = None,
+) -> plt.Figure:
     """
-    Render alpha, beta, and delta connectivity side-by-side in a single figure,
-    matching the multi-panel layout used in the paper.
+    Render alpha, beta, delta, and full-band connectivity in a single figure.
 
     Parameters
     ----------
     result    : dDTFResult from compute_ddtf_connectivity()
     threshold : minimum normalised strength to display
+    suptitle  : optional figure title
 
     Returns
     -------
     matplotlib Figure  (call .savefig('connectivity.png', dpi=150) to export)
     """
-    fig, axes = plt.subplots(1, 3, figsize=(18, 7), facecolor="white")
+    bands = ["alpha", "beta", "delta", "all"]
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12), facecolor="white")
+    axes = axes.flatten()
 
-    for ax, band in zip(axes, ["alpha", "beta", "delta", "all"]):
-        # Temporarily redirect plot_ddtf to use our shared axis
+    for ax, band in zip(axes, bands):
         _plot_ddtf_on_axis(ax, result, band, threshold)
 
-    fig.suptitle("dDTF Band Connectivity", fontsize=14, fontweight="bold", y=1.02)
+    title = suptitle or "dDTF Band Connectivity"
+    fig.suptitle(title, fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
     return fig
 

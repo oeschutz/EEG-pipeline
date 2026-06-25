@@ -151,7 +151,7 @@ def compare_flow_state(baseline_flow: dict, task_flow: dict) -> dict:
         _criterion("Right central alpha ↑",   task_flow["right_central_alpha"],  baseline_flow["right_central_alpha"],  "higher"),
         _criterion("Global theta power ↑",    task_flow["theta_power"],          baseline_flow["theta_power"],          "higher"),
         _criterion("Global alpha power ↑",    task_flow["alpha_power"],          baseline_flow["alpha_power"],          "higher"),
-        _criterion("Global beta power ↓",     task_flow["beta_power"],           baseline_flow["beta_power"],           "lower"),
+        _criterion("Global beta power ↑",     task_flow["beta_power"],           baseline_flow["beta_power"],           "higher"),
     ]
 
     n_met    = sum(c["met"] for c in criteria)
